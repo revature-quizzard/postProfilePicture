@@ -1,0 +1,16 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: 'AWS::Serverless-2016-10-31'
+Description: A simple AWS Lambda for searching book records within a DynamoDB table.
+Resources:
+  GetBooksFx:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: <RELATIVE_PATH_TO_YOUR_JAR>
+      Handler: <FULLY_QUALIFIED_PATH_TO_YOUR_HANDLER>
+      Runtime: java8.al2
+      Description: Java function
+      MemorySize: 256
+      Timeout: 30
+      Tracing: Active
+      Policies:
+        - arn:aws:iam::011217676466:policy/post-profile-sam-policy

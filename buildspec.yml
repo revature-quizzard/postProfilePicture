@@ -1,0 +1,18 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      java: corretto8
+  build:
+    commands:
+      - echo Build started on date
+      - mvn package
+      - sam package
+        --template-file sam-template.yml
+        --s3-bucket post-profile-picture-build-bucket
+        --output-template-file packaged-template.yml
+
+artifacts:
+  files:
+    - packaged-template.yml
