@@ -5,8 +5,8 @@ Resources:
   GetBooksFx:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: <RELATIVE_PATH_TO_YOUR_JAR>
-      Handler: <FULLY_QUALIFIED_PATH_TO_YOUR_HANDLER>
+      CodeUri: target/post_profile_picture-1.0.jar
+      Handler: com.revature.post_profile_image.ProfilePictureUploadHandler
       Runtime: java8.al2
       Description: Java function
       MemorySize: 256
