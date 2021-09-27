@@ -1,8 +1,8 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: 'AWS::Serverless-2016-10-31'
-Description: A simple AWS Lambda for searching book records within a DynamoDB table.
+Description: A simple AWS Lambda for uploading user profile images.
 Resources:
-  GetBooksFx:
+  PostProfilePictureFx:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: target/post_profile_picture-1.0.jar
@@ -13,4 +13,5 @@ Resources:
       Timeout: 30
       Tracing: Active
       Policies:
-        - arn:aws:iam::011217676466:policy/post-profile-sam-policy
+        - arn:aws:iam::011217676466:policy/QwizzardUserProfileImageBucketPutAccess
+        - arn:aws:iam::011217676466:policy/service-role/AWSLambdaBasicExecutionRole-0122a76b-db79-440d-a45b-862bd20cd7e0
