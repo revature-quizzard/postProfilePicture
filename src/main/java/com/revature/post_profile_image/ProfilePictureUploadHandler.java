@@ -75,7 +75,6 @@ public class ProfilePictureUploadHandler implements RequestHandler<APIGatewayPro
             if (user_id.trim().equals("") || user_id.isEmpty()) {
                 logger.log("Invalid request; there must be a user_id!");
                 responseEvent.setStatusCode(400);
-                requestEvent.setBody(mapper.toJson(new RuntimeException("Invalid request; there must be a user_id!")));
                 return responseEvent;
             }
 
@@ -90,7 +89,6 @@ public class ProfilePictureUploadHandler implements RequestHandler<APIGatewayPro
             if (!isBase64Encoded) {
                 logger.log("Invalid request, this is supposed to be a base64 encoded string!");
                 responseEvent.setStatusCode(400);
-                requestEvent.setBody(mapper.toJson(new RuntimeException("Invalid request, this is supposed to be a base64 encoded string!")));
                 return responseEvent;
             }
 
