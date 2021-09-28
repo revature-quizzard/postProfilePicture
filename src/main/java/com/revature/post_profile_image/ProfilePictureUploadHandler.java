@@ -21,35 +21,33 @@ import java.net.URLConnection;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.Base64;
+import java.util.HashMap;
 import java.util.Map;
 
 /**
- * ProfilePictureUploadHandler is the handler for an AWS Lambda that takes in a base64 encoded string derived from an image
- * and decrypts it, compiling it into an image and persisting that image into an Amazon S3 bucket for safe and easy querying.
+ * ProfilePictureUploadHandler is a Java-based AWS Lambda program whose sole job
+ * is to take an image and shepherd it into a database for a grateful user. It is an
+ * abstraction for a massive amount of heavy lifting in terms of conversion between
+ * image and text. And it is beautiful.
  *
  * @author John Callahan
- * @author Mitchell Panenko
  */
 public class ProfilePictureUploadHandler implements RequestHandler<APIGatewayProxyRequestEvent, APIGatewayProxyResponseEvent> {
 
     private static final Gson mapper = new GsonBuilder().setPrettyPrinting().create();
-    private AmazonS3 s3Client = AmazonS3ClientBuilder.standard().withRegion("us-east-2").build();
-
-    public ProfilePictureUploadHandler(AmazonS3 s3Client) {
-        this.s3Client = s3Client;
-    }
-
-    public ProfilePictureUploadHandler() {}
+    private final AmazonS3 s3Client = AmazonS3ClientBuilder.standard().withRegion("us-east-2").build();
 
     /**
+     *
      * Handler for the APIGateway Proxy Request Event. Common among all lambdas.
      * Encrypts an image in base 64 for easy sending to a s3 bucket.
      *
-     * @param requestEvent: The input from APIGateway sent from the user. Bears an image,
-     *                    Which was turned into base64 when it was sent as part of an HTTP Request.
-     * @param context: APIGateway's logger and metadata for tracking incoming and outgoing
-     *               requests and responses.
-     * @return An HTTP reply bearing a message of either success or failure.
+     * @param requestEvent: The requesting event obtained from APIGateway,
+     * likely bearing an image ripe for turning into a byte array.
+     * @param context: The context surrounding
+     * @return responseEvent: An HTTP reply bearing a message of either success or failure.
+     * If all goes well, it returns a success message that the image was indeed persisted in
+     * Amazon S3.
      */
     @Override
     public APIGatewayProxyResponseEvent handleRequest(APIGatewayProxyRequestEvent requestEvent, Context context) {
@@ -59,22 +57,21 @@ public class ProfilePictureUploadHandler implements RequestHandler<APIGatewayPro
 
         APIGatewayProxyResponseEvent responseEvent = new APIGatewayProxyResponseEvent();
         try {
-            Map<String, String> queryParams = requestEvent.getQueryStringParameters();
+            Map<String, String> params = requestEvent.getPathParameters();
             String user_id;
 
-            // header validation. There must be a user_id parameter
-            if (queryParams != null) {
-                user_id = queryParams.get("user_id");
+            // header validation
+            if (params != null) {
+                user_id = params.get("user_id");
                 logger.log("User verified! user_id: " + user_id);
             } else {
                 user_id = "";
             }
 
-            // if no user parameter, return 400.
+            // Return 400 over invalid user request with no user_id header.
             if (user_id.trim().equals("") || user_id.isEmpty()) {
                 logger.log("Invalid request; there must be a user_id!");
                 responseEvent.setStatusCode(400);
-                requestEvent.setBody(mapper.toJson("Invalid request; there must be a user_id!"));
                 return responseEvent;
             }
 
@@ -82,53 +79,50 @@ public class ProfilePictureUploadHandler implements RequestHandler<APIGatewayPro
 
             logger.log("Incoming request body size: " + fileByteArray.length);
 
-            // validate that the request body is base64, return 400 if not
+            // Base64 Validation
             boolean isBase64Encoded = requestEvent.getIsBase64Encoded();
             logger.log("Request is base64 encoded: " + isBase64Encoded);
 
             if (!isBase64Encoded) {
                 logger.log("Invalid request, this is supposed to be a base64 encoded string!");
                 responseEvent.setStatusCode(400);
-                requestEvent.setBody(mapper.toJson("Invalid request, this is supposed to be a base64 encoded string!"));
                 return responseEvent;
             }
 
-            // Decoding the array from base64 to native script.
+            // Decoding the string...
             logger.log("Decoding file byte array...");
             byte[] decodedFileByteBinary = Base64.getDecoder().decode(fileByteArray);
 
-            // take the headers from the APIGatewayProxyRequestEvent
+            // Own the headers
             logger.log("Retrieving content-type header value and extracting the boundary");
             Map<String, String> reqHeaders = requestEvent.getHeaders();
 
-            // without a proper content-type header, it cannot be read.
             if (reqHeaders==null || !reqHeaders.containsKey("Content-Type")) {
                 logger.log("Could not process request; Missing Content-Type header.");
                 responseEvent.setStatusCode(400);
-                requestEvent.setBody(mapper.toJson("Could not process request; Missing Content-Type header."));
                 return responseEvent;
             }
 
-            // take charsets from the decoded byte array and turn them into image data.
+            // Split the string into charsets
             String contentType = reqHeaders.get("Content-Type");
             byte[] boundary = contentType.split("=")[1].getBytes(StandardCharsets.UTF_8);
 
             logger.log("Content-type and boundary extracted from request.");
             logger.log("Decoded file byte array: " + new String(decodedFileByteBinary, StandardCharsets.UTF_8) + "\n");
 
-            // create another bytestream from the imagedata to get a finished image.
+            // Write the file to a byte stream for processing.
             logger.log("Writing file data to byte stream");
             ByteArrayInputStream content = new ByteArrayInputStream(decodedFileByteBinary);
             ByteArrayOutputStream output = new ByteArrayOutputStream();
 
-            // parse content stream to discover the mimeType. Necessary for knowing what to take from the s3.
+            // Parse input stream to discover the mimeType.
             String mimeType = URLConnection.guessContentTypeFromStream(content); //mimeType is something like "image/jpeg"
             String delimiter="[/]";
             String[] tokens = mimeType.split(delimiter);
             String fileExtension = tokens[1];
             logger.log("mimeType discovered! " + fileExtension);
 
-            // create three different streams for the content, boundary, and the decoded data. Skip past the unnecessary preamble.
+            // Stream over the data and write it to a decrypted byte stream.
             MultipartStream multipartStream = new MultipartStream(content, boundary, decodedFileByteBinary.length, null);
 
             boolean hasNext = multipartStream.skipPreamble();
@@ -142,17 +136,17 @@ public class ProfilePictureUploadHandler implements RequestHandler<APIGatewayPro
 
             logger.log("File data written to byte stream!");
 
-            // bucketName defines which bucket the lambda outputs to. inStream separates the content from the multipart stream.
+            // Bucketname variable pointing to the user-profile-images-bucket.
             String bucketName = "user-profile-images-bucket";
             logger.log("Preparing file for persistence to s3 bucket " + bucketName + "...");
             InputStream inStream = new ByteArrayInputStream(output.toByteArray());
 
-            // objMetadata defines certain aspects of the output image, like the size and type.
+            // Generate object metadata.
             ObjectMetadata objMetadata = new ObjectMetadata();
             objMetadata.setContentLength(output.toByteArray().length);
             objMetadata.setContentType(contentType);
 
-            // tag the image with the user_id as a unique name.
+            // Tag the image with the user_id as a name, to prevent any possible query problems.
             PutObjectResult result = s3Client.putObject(bucketName, user_id, inStream, objMetadata);
             URL pictureUrl = s3Client.getUrl(bucketName, user_id + "." + fileExtension);
 
@@ -160,17 +154,19 @@ public class ProfilePictureUploadHandler implements RequestHandler<APIGatewayPro
             logger.log("Result: " + result);
 
             logger.log("Preparing response object");
-
-            // 201: resource successfully created. send back the picture URL.
+            // Send back a 201 with the URL for profilePicture persistence purposes.
             responseEvent.setStatusCode(201);
             responseEvent.setBody(pictureUrl.toString());
 
-            // TODO: link to repository to change the user_id's profile_picture to the located URL.
+            // Generate the body of the response. It will be a JSON of the key value pairs from respbody
+            Map<String, String> respBody = new HashMap<>();
+            respBody.put("status", "uploaded");
+            respBody.put("filename", user_id);
+            responseEvent.setBody(mapper.toJson(respBody));
 
         } catch(IOException ioe) {
             logger.log("Error reading byte array!" + ioe.getMessage());
             responseEvent.setStatusCode(500);
-            responseEvent.setBody(mapper.toJson("Your image could not be persisted!"));
             return responseEvent;
         } catch (Exception e) {
             responseEvent.setStatusCode(500);
