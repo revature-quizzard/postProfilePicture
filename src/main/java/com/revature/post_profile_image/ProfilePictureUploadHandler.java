@@ -21,7 +21,6 @@ import java.time.LocalDateTime;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
 
 /**
  * ProfilePictureUploadHandler is a Java-based AWS Lambda program whose sole job
@@ -56,6 +55,24 @@ public class ProfilePictureUploadHandler implements RequestHandler<APIGatewayPro
 
         APIGatewayProxyResponseEvent responseEvent = new APIGatewayProxyResponseEvent();
         try {
+            Map<String, String> params = requestEvent.getPathParameters();
+            String user_id;
+
+            // header validation
+            if (params != null) {
+                user_id = params.get("user_id");
+                logger.log("User verified! user_id: " + user_id);
+            } else {
+                user_id = "";
+            }
+
+            // Return 400 over invalid user request with no user_id header.
+            if (user_id.trim().equals("") || user_id.isEmpty()) {
+                logger.log("Invalid request; there must be a user_id!");
+                responseEvent.setStatusCode(400);
+                return responseEvent;
+            }
+
             byte[] fileByteArray = requestEvent.getBody().getBytes();
 
             logger.log("Incoming request body size: " + fileByteArray.length);
@@ -120,9 +137,8 @@ public class ProfilePictureUploadHandler implements RequestHandler<APIGatewayPro
             objMetadata.setContentLength(output.toByteArray().length);
             objMetadata.setContentType(contentType);
 
-            // Generate a random UUID to tag the image object with, to prevent any possible query problems.
-            String uniqueFileName = UUID.randomUUID().toString();
-            PutObjectResult result = s3Client.putObject(bucketName, uniqueFileName, inStream, objMetadata);
+            // Tag the image with the user_id as a name, to prevent any possible query problems.
+            PutObjectResult result = s3Client.putObject(bucketName, user_id, inStream, objMetadata);
 
             logger.log("File successfully persisted to an S3 Bucket! Hooray!");
             logger.log("Result: " + result);
@@ -133,7 +149,7 @@ public class ProfilePictureUploadHandler implements RequestHandler<APIGatewayPro
             // Generate the body of the response. It will be a JSON of the key value pairs from respbody
             Map<String, String> respBody = new HashMap<>();
             respBody.put("status", "uploaded");
-            respBody.put("uuid", uniqueFileName);
+            respBody.put("filename", user_id);
             responseEvent.setBody(mapper.toJson(respBody));
 
         } catch(IOException ioe) {

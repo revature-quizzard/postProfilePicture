@@ -7,6 +7,7 @@ import com.revature.post_profile_image.stubs.TestLogger;
 import org.apache.commons.io.IOUtils;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -51,6 +52,7 @@ class ProfilePictureUploadHandlerTest {
         APIGatewayProxyRequestEvent mockRequestEvent = new APIGatewayProxyRequestEvent();
         mockRequestEvent.withPath("/users/images");
         mockRequestEvent.withHttpMethod("POST");
+        mockRequestEvent.withPathParameters(Collections.singletonMap("user_id", "valid"));
         mockRequestEvent.withBody(base64);
         mockRequestEvent.setIsBase64Encoded(true);
         mockRequestEvent.setHeaders(headers);
@@ -72,6 +74,7 @@ class ProfilePictureUploadHandlerTest {
         APIGatewayProxyRequestEvent mockRequestEvent = new APIGatewayProxyRequestEvent();
         mockRequestEvent.withPath("/users/images");
         mockRequestEvent.withHttpMethod("POST");
+        mockRequestEvent.withPathParameters(Collections.singletonMap("user_id", "valid"));
         mockRequestEvent.withBody(base64);
         mockRequestEvent.setIsBase64Encoded(true);
         mockRequestEvent.withQueryStringParameters(null);
@@ -85,6 +88,27 @@ class ProfilePictureUploadHandlerTest {
 
     @org.junit.jupiter.api.Test
     void handleRequest_Return400_IfGiven_InvalidContent() throws IOException {
+        // Arrange
+        FileInputStream bigChungus = new FileInputStream("src/test/resources/big-base-64.txt");
+        String base64 = IOUtils.toString(bigChungus);
+
+        APIGatewayProxyRequestEvent mockRequestEvent = new APIGatewayProxyRequestEvent();
+        mockRequestEvent.withPath("/users/images");
+        mockRequestEvent.withHttpMethod("POST");
+        mockRequestEvent.withPathParameters(Collections.singletonMap("user_id", "valid"));
+        mockRequestEvent.withBody(base64);
+        mockRequestEvent.setIsBase64Encoded(false);
+        mockRequestEvent.withQueryStringParameters(null);
+
+        // Act
+        APIGatewayProxyResponseEvent responseEvent = sut.handleRequest(mockRequestEvent, mockContext);
+
+        // Assert
+        assertEquals(400, responseEvent.getStatusCode());
+    }
+
+    @org.junit.jupiter.api.Test
+    void handleRequest_Return400_IfGiven_InvalidUserId() throws IOException {
         // Arrange
         FileInputStream bigChungus = new FileInputStream("src/test/resources/big-base-64.txt");
         String base64 = IOUtils.toString(bigChungus);
