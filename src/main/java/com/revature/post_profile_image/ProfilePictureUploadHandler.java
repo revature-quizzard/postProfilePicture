@@ -16,6 +16,8 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URL;
+import java.net.URLConnection;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.Base64;
@@ -113,6 +115,13 @@ public class ProfilePictureUploadHandler implements RequestHandler<APIGatewayPro
             ByteArrayInputStream content = new ByteArrayInputStream(decodedFileByteBinary);
             ByteArrayOutputStream output = new ByteArrayOutputStream();
 
+            // Parse input stream to discover the mimeType.
+            String mimeType = URLConnection.guessContentTypeFromStream(content); //mimeType is something like "image/jpeg"
+            String delimiter="[/]";
+            String[] tokens = mimeType.split(delimiter);
+            String fileExtension = tokens[1];
+            logger.log("mimeType discovered! " + fileExtension);
+
             // Stream over the data and write it to a decrypted byte stream.
             MultipartStream multipartStream = new MultipartStream(content, boundary, decodedFileByteBinary.length, null);
 
@@ -139,12 +148,15 @@ public class ProfilePictureUploadHandler implements RequestHandler<APIGatewayPro
 
             // Tag the image with the user_id as a name, to prevent any possible query problems.
             PutObjectResult result = s3Client.putObject(bucketName, user_id, inStream, objMetadata);
+            URL pictureUrl = s3Client.getUrl(bucketName, user_id + "." + fileExtension);
 
             logger.log("File successfully persisted to an S3 Bucket! Hooray!");
             logger.log("Result: " + result);
 
             logger.log("Preparing response object");
+            // Send back a 201 with the URL for profilePicture persistence purposes.
             responseEvent.setStatusCode(201);
+            responseEvent.setBody(pictureUrl.toString());
 
             // Generate the body of the response. It will be a JSON of the key value pairs from respbody
             Map<String, String> respBody = new HashMap<>();
