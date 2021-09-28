@@ -35,7 +35,13 @@ import java.util.Map;
 public class ProfilePictureUploadHandler implements RequestHandler<APIGatewayProxyRequestEvent, APIGatewayProxyResponseEvent> {
 
     private static final Gson mapper = new GsonBuilder().setPrettyPrinting().create();
-    private final AmazonS3 s3Client = AmazonS3ClientBuilder.standard().withRegion("us-east-2").build();
+    private AmazonS3 s3Client = AmazonS3ClientBuilder.standard().withRegion("us-east-2").build();
+
+    public ProfilePictureUploadHandler(AmazonS3 s3Client) {
+        this.s3Client = s3Client;
+    }
+
+    public ProfilePictureUploadHandler() {}
 
     /**
      *
