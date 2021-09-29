@@ -118,6 +118,7 @@ class ProfilePictureUploadHandlerTest {
         mockRequestEvent.withQueryStringParameters(Collections.singletonMap("user_id", "valid"));
         mockRequestEvent.withBody(base64);
         mockRequestEvent.setIsBase64Encoded(false);
+        mockRequestEvent.withQueryStringParameters(null);
 
         // Act
         APIGatewayProxyResponseEvent responseEvent = sut.handleRequest(mockRequestEvent, mockContext);
