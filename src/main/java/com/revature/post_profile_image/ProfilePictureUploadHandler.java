@@ -44,8 +44,8 @@ public class ProfilePictureUploadHandler implements RequestHandler<APIGatewayPro
 
     /**
      *
-     * Handler for the APIGateway Proxy Request Event. Performs decryption of the base64-encoded
-     * image and persists it into a public S3 bucket.
+     * Handler for the APIGateway Proxy Request Event. Common among all lambdas.
+     * Encrypts an image in base 64 for easy sending to an s3 bucket.
      *
      * @param requestEvent: The input from APIGateway sent from the user. Bears an image,
      *                    Which was turned into base64 when it was sent as part of an HTTP Request.
