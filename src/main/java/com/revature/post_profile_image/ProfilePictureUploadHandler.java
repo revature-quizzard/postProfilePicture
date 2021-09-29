@@ -120,6 +120,7 @@ public class ProfilePictureUploadHandler implements RequestHandler<APIGatewayPro
             ByteArrayInputStream content = new ByteArrayInputStream(decodedFileByteBinary);
             ByteArrayOutputStream output = new ByteArrayOutputStream();
 
+            // parse content stream to discover the mimeType. Necessary for knowing what to take from the s3.
             logger.log("Discovering mimeType...");
             // parse content stream to discover the mimeType. Necessary for knowing what to take from the s3.
             String mimeType = URLConnection.guessContentTypeFromStream(content); //mimeType is something like "image/jpeg"
