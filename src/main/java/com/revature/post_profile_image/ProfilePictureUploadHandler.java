@@ -75,7 +75,7 @@ public class ProfilePictureUploadHandler implements RequestHandler<APIGatewayPro
             if (user_id.trim().equals("") || user_id.isEmpty()) {
                 logger.log("Invalid request; there must be a user_id!");
                 responseEvent.setStatusCode(400);
-                requestEvent.setBody(mapper.toJson("Invalid request; there must be a user_id!"));
+                requestEvent.setBody(mapper.toJson(new RuntimeException("Invalid request; there must be a user_id!")));
                 return responseEvent;
             }
 
@@ -90,7 +90,7 @@ public class ProfilePictureUploadHandler implements RequestHandler<APIGatewayPro
             if (!isBase64Encoded) {
                 logger.log("Invalid request, this is supposed to be a base64 encoded string!");
                 responseEvent.setStatusCode(400);
-                requestEvent.setBody(mapper.toJson("Invalid request, this is supposed to be a base64 encoded string!"));
+                requestEvent.setBody(mapper.toJson(new RuntimeException("Invalid request, this is supposed to be a base64 encoded string!")));
                 return responseEvent;
             }
 
@@ -103,10 +103,10 @@ public class ProfilePictureUploadHandler implements RequestHandler<APIGatewayPro
             Map<String, String> reqHeaders = requestEvent.getHeaders();
 
             // without a proper content-type header, it cannot be read.
-            if (reqHeaders==null || !reqHeaders.containsKey("Content-Type")) {
+            if (reqHeaders == null || !reqHeaders.containsKey("Content-Type")) {
                 logger.log("Could not process request; Missing Content-Type header.");
                 responseEvent.setStatusCode(400);
-                requestEvent.setBody(mapper.toJson("Could not process request; Missing Content-Type header."));
+                requestEvent.setBody(mapper.toJson(new RuntimeException("Could not process request; Missing Content-Type header.")));
                 return responseEvent;
             }
 
@@ -125,7 +125,7 @@ public class ProfilePictureUploadHandler implements RequestHandler<APIGatewayPro
             logger.log("Discovering mimeType...");
             // parse content stream to discover the mimeType. Necessary for knowing what to take from the s3.
             String mimeType = URLConnection.guessContentTypeFromStream(content); //mimeType is something like "image/jpeg"
-            String delimiter="[/]";
+            String delimiter = "[/]";
             String[] tokens = mimeType.split(delimiter);
             String fileExtension = tokens[1];
             logger.log("mimeType discovered! " + fileExtension);
@@ -172,14 +172,18 @@ public class ProfilePictureUploadHandler implements RequestHandler<APIGatewayPro
 
             // TODO: link to repository to change the user_id's profile_picture to the located URL.
 
-        } catch(IOException ioe) {
+        } catch (IOException ioe) {
             logger.log("Error reading byte array!" + ioe.getMessage());
             responseEvent.setStatusCode(500);
-            responseEvent.setBody(mapper.toJson("Your image could not be persisted!"));
+            responseEvent.setBody(mapper.toJson(ioe));
             return responseEvent;
+        } catch (NullPointerException npe) {
+            logger.log("Error: Resource not found!" + npe.getCause());
+            responseEvent.setStatusCode(504);
+            responseEvent.setBody(mapper.toJson(npe));
         } catch (Exception e) {
             responseEvent.setStatusCode(500);
-            logger.log("An unexpected exception occurred! " + e.getMessage());
+            logger.log(mapper.toJson(e));
         }
 
         logger.log("Request processing complete. Sending response:: " + responseEvent);
