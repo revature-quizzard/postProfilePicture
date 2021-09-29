@@ -74,7 +74,7 @@ class ProfilePictureUploadHandlerTest {
         APIGatewayProxyRequestEvent mockRequestEvent = new APIGatewayProxyRequestEvent();
         mockRequestEvent.withPath("/users/images");
         mockRequestEvent.withHttpMethod("POST");
-        mockRequestEvent.withPathParameters(Collections.singletonMap("user_id", "valid"));
+        mockRequestEvent.withQueryStringParameters(Collections.singletonMap("user_id", "valid"));
         mockRequestEvent.withBody(base64);
         mockRequestEvent.setIsBase64Encoded(true);
         mockRequestEvent.setHeaders(headers);
@@ -96,7 +96,7 @@ class ProfilePictureUploadHandlerTest {
         APIGatewayProxyRequestEvent mockRequestEvent = new APIGatewayProxyRequestEvent();
         mockRequestEvent.withPath("/users/images");
         mockRequestEvent.withHttpMethod("POST");
-        mockRequestEvent.withPathParameters(Collections.singletonMap("user_id", "valid"));
+        mockRequestEvent.withQueryStringParameters(Collections.singletonMap("user_id", "valid"));
         mockRequestEvent.withBody(base64);
         mockRequestEvent.setIsBase64Encoded(true);
         mockRequestEvent.withQueryStringParameters(null);
@@ -117,7 +117,7 @@ class ProfilePictureUploadHandlerTest {
         APIGatewayProxyRequestEvent mockRequestEvent = new APIGatewayProxyRequestEvent();
         mockRequestEvent.withPath("/users/images");
         mockRequestEvent.withHttpMethod("POST");
-        mockRequestEvent.withPathParameters(Collections.singletonMap("user_id", "valid"));
+        mockRequestEvent.withQueryStringParameters(Collections.singletonMap("user_id", "valid"));
         mockRequestEvent.withBody(base64);
         mockRequestEvent.setIsBase64Encoded(false);
         mockRequestEvent.withQueryStringParameters(null);
