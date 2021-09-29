@@ -17,7 +17,6 @@ import java.net.URLStreamHandler;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -95,9 +94,9 @@ class ProfilePictureUploadHandlerTest {
         APIGatewayProxyRequestEvent mockRequestEvent = new APIGatewayProxyRequestEvent();
         mockRequestEvent.withPath("/users/images");
         mockRequestEvent.withHttpMethod("POST");
-        mockRequestEvent.withQueryStringParameters(Collections.singletonMap("user_id", "valid"));
         mockRequestEvent.withBody(base64);
         mockRequestEvent.setIsBase64Encoded(true);
+        mockRequestEvent.withQueryStringParameters(Collections.singletonMap("user_id", "valid"));
 
         // Act
         APIGatewayProxyResponseEvent responseEvent = sut.handleRequest(mockRequestEvent, mockContext);
