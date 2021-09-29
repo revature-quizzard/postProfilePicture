@@ -73,7 +73,7 @@ class ProfilePictureUploadHandlerTest {
         APIGatewayProxyRequestEvent mockRequestEvent = new APIGatewayProxyRequestEvent();
         mockRequestEvent.withPath("/users/images");
         mockRequestEvent.withHttpMethod("POST");
-        mockRequestEvent.withQueryStringParameters(Collections.singletonMap("user_id", "B1GCHUNGU5"));
+        mockRequestEvent.withQueryStringParameters(Collections.singletonMap("user_id", "valid"));
         mockRequestEvent.withBody(base64);
         mockRequestEvent.setIsBase64Encoded(true);
         mockRequestEvent.setHeaders(headers);
@@ -94,6 +94,7 @@ class ProfilePictureUploadHandlerTest {
         APIGatewayProxyRequestEvent mockRequestEvent = new APIGatewayProxyRequestEvent();
         mockRequestEvent.withPath("/users/images");
         mockRequestEvent.withHttpMethod("POST");
+        mockRequestEvent.withQueryStringParameters(Collections.singletonMap("user_id", "valid"));
         mockRequestEvent.withBody(base64);
         mockRequestEvent.setIsBase64Encoded(true);
         mockRequestEvent.withQueryStringParameters(Collections.singletonMap("user_id", "valid"));
