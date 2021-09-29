@@ -80,7 +80,6 @@ class ProfilePictureUploadHandlerTest {
         mockRequestEvent.setHeaders(headers);
 
         // Act
-        System.out.println(mockRequestEvent.getQueryStringParameters());
         APIGatewayProxyResponseEvent responseEvent = sut.handleRequest(mockRequestEvent, mockContext);
 
         // Assert
