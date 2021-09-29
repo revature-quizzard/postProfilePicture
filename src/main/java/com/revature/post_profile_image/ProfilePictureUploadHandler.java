@@ -61,12 +61,12 @@ public class ProfilePictureUploadHandler implements RequestHandler<APIGatewayPro
 
         APIGatewayProxyResponseEvent responseEvent = new APIGatewayProxyResponseEvent();
         try {
-            Map<String, String> params = requestEvent.getQueryStringParameters();
+            Map<String, String> queryParams = requestEvent.getQueryStringParameters();
             String user_id;
 
             // header validation. There must be a user_id parameter
-            if (params != null) {
-                user_id = params.get("user_id");
+            if (queryParams != null) {
+                user_id = queryParams.get("user_id");
                 logger.log("User verified! user_id: " + user_id);
             } else {
                 user_id = "";
