@@ -14,7 +14,6 @@ import software.amazon.awssdk.enhanced.dynamodb.model.ScanEnhancedRequest;
 import software.amazon.awssdk.http.apache.ApacheHttpClient;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
-
 import java.util.List;
 
 /**
@@ -80,13 +79,13 @@ public class UserRepository {
 class User {
     private String id;
     private String username;
-    private List<SetDocument> favorite_sets;
-    private List<SetDocument> created_sets;
-    private String profile_picture;
+    private List<SetDocument> favoriteSets;
+    private List<SetDocument> createdSets;
+    private String profilePicture;
     private int points;
     private int wins;
     private int losses;
-    private String registration_date;
+    private String registrationDate;
     private List<String> gameRecords;
 
     @DynamoDbPartitionKey
@@ -104,7 +103,7 @@ class User {
 @AllArgsConstructor
 class SetDocument {
     private String id;
-    private String set_name;
+    private String setName;
     private List<Tags> tags;
     private String author;
     private boolean isPublic;
