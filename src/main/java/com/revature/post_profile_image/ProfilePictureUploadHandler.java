@@ -12,6 +12,8 @@ import com.amazonaws.services.s3.model.PutObjectResult;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import org.apache.commons.fileupload.MultipartStream;
+import org.apache.commons.lang3.ObjectUtils;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -35,9 +37,11 @@ public class ProfilePictureUploadHandler implements RequestHandler<APIGatewayPro
 
     private static final Gson mapper = new GsonBuilder().setPrettyPrinting().create();
     private AmazonS3 s3Client = AmazonS3ClientBuilder.standard().withRegion("us-east-2").build();
+    private UserRepository userRepo;
 
-    public ProfilePictureUploadHandler(AmazonS3 s3Client) {
+    public ProfilePictureUploadHandler(AmazonS3 s3Client, UserRepository userRepo) {
         this.s3Client = s3Client;
+        this.userRepo = userRepo;
     }
 
     public ProfilePictureUploadHandler() {}
@@ -104,7 +108,7 @@ public class ProfilePictureUploadHandler implements RequestHandler<APIGatewayPro
             Map<String, String> reqHeaders = requestEvent.getHeaders();
 
             // without a proper content-type header, it cannot be read.
-            if (reqHeaders==null || !reqHeaders.containsKey("Content-Type")) {
+            if (reqHeaders == null || !reqHeaders.containsKey("Content-Type")) {
                 logger.log("Could not process request; Missing Content-Type header.");
                 responseEvent.setStatusCode(400);
                 requestEvent.setBody(mapper.toJson("Could not process request; Missing Content-Type header."));
@@ -126,7 +130,7 @@ public class ProfilePictureUploadHandler implements RequestHandler<APIGatewayPro
             // parse content stream to discover the mimeType. Necessary for knowing what to take from the s3.
             logger.log("Checking the mimeType...");
             String mimeType = URLConnection.guessContentTypeFromStream(content); //mimeType is something like "image/jpeg"
-            String delimiter="[/]";
+            String delimiter = "[/]";
             String[] tokens = mimeType.split(delimiter);
             String fileExtension = tokens[1];
             logger.log("mimeType discovered! " + fileExtension);
@@ -171,13 +175,26 @@ public class ProfilePictureUploadHandler implements RequestHandler<APIGatewayPro
             responseEvent.setStatusCode(201);
             responseEvent.setBody(pictureUrl.toString());
 
-            // TODO: link to repository to change the user_id's profile_picture to the located URL.
+            // find the user so we may alter them
+            logger.log("Fetching user...");
+            User user = userRepo.findUserById(user_id);
+            logger.log("User found: " + user);
 
-        } catch(IOException ioe) {
+            // perform the alteration. pictureUrl can never be null, and if one is not found,
+            // it results in a NullPointerException. this is perfectly safe.
+            logger.log("Performing update of profile_picture...");
+            user.setProfile_picture(pictureUrl.toString());
+            userRepo.saveUser(user);
+            logger.log("Update complete!");
+
+        } catch (IOException ioe) {
             logger.log("Error reading byte array!" + ioe.getMessage());
             responseEvent.setStatusCode(500);
             responseEvent.setBody(mapper.toJson("Your image could not be persisted!"));
-            return responseEvent;
+        } catch (NullPointerException npe) {
+            logger.log("Error: Could not find " + npe.getCause() + "!");
+            responseEvent.setStatusCode(504);
+            responseEvent.setBody(mapper.toJson(npe));
         } catch (Exception e) {
             responseEvent.setStatusCode(500);
             logger.log("An unexpected exception occurred! " + e.getMessage());
