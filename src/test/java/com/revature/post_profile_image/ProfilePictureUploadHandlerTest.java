@@ -5,6 +5,7 @@ import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.PutObjectResult;
+import com.revature.post_profile_image.models.User;
 import com.revature.post_profile_image.stubs.TestLogger;
 import org.apache.commons.io.IOUtils;
 import java.io.FileInputStream;

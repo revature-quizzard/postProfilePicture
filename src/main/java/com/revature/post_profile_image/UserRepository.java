@@ -1,21 +1,16 @@
 package com.revature.post_profile_image;
 
 import com.revature.post_profile_image.exceptions.ResourceNotFoundException;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import com.revature.post_profile_image.models.User;
+import lombok.SneakyThrows;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
 import software.amazon.awssdk.enhanced.dynamodb.Expression;
 import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
-import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbBean;
-import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbPartitionKey;
 import software.amazon.awssdk.enhanced.dynamodb.model.ScanEnhancedRequest;
 import software.amazon.awssdk.http.apache.ApacheHttpClient;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
-import java.util.List;
 
 /**
  * The UserRepository is a class dedicated to connecting to DynamoDB for the purposes of
@@ -45,6 +40,7 @@ public class UserRepository {
      * @return - A user object bearing the data sourced from the DynamoDB table. This is so that we can send it back to the
      * handler for proper updating of their profile picture with the URL sourced from S3.
      */
+    @SneakyThrows
     public User findUserById(String id) {
         AttributeValue val = AttributeValue.builder().s(id).build();
         // Make an expression where '#a' and ':b' are variables. Assign those variables to a string and value, a hashset.
@@ -67,65 +63,7 @@ public class UserRepository {
      * @return - the user object itself for verification within the handler. It is not going to be sent back
      * to the user.
      */
+    @SneakyThrows
     public User saveUser(User user) { return userTable.updateItem(user); }
 }
 
-/**
- * The User POJO is necessary for storing the data received from DynamoDB.
- * It is very much a Data Transfer Object.
- */
-@Data
-@Builder
-@DynamoDbBean
-@NoArgsConstructor
-@AllArgsConstructor
-class User {
-    private String id;
-    private String username;
-    private List<SetDocument> favoriteSets;
-    private List<SetDocument> createdSets;
-    private String profilePicture;
-    private int points;
-    private int wins;
-    private int losses;
-    private String registrationDate;
-    private List<String> gameRecords;
-
-    @DynamoDbPartitionKey
-    public String getId() {
-        return id;
-    }
-}
-
-/**
- * SetDocument is necessary because the User returned from DynamoDB has a
- * list of SetDocuments attached to them describing the user's favorite cards
- * and their created list of cards. This is what we are altering.
- */
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
-class SetDocument {
-    private String id;
-    private String setName;
-    private List<Tags> tags;
-    private String author;
-    private boolean isPublic;
-    private int views;
-    private int plays;
-    private int studies;
-    private int favorites;
-}
-
-/**
- * Tags is a necessary pojo for persisting data from the DynamoDB to access
- * the users from the database. Without the Tags, it is impossible to handle
- * user data safely.
- */
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
-class Tags {
-    private String tagName;
-    private String tagColor;
-}

@@ -11,8 +11,8 @@ import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectResult;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.revature.post_profile_image.models.User;
 import org.apache.commons.fileupload.MultipartStream;
-import org.apache.commons.lang3.ObjectUtils;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -23,7 +23,6 @@ import java.net.URLConnection;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.Base64;
-import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -183,7 +182,7 @@ public class ProfilePictureUploadHandler implements RequestHandler<APIGatewayPro
             // perform the alteration. pictureUrl can never be null, and if one is not found,
             // it results in a NullPointerException. this is perfectly safe.
             logger.log("Performing update of profile_picture...");
-            user.setProfile_picture(pictureUrl.toString());
+            user.setProfilePicture(pictureUrl.toString());
             userRepo.saveUser(user);
             logger.log("Update complete!");
 
