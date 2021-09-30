@@ -121,6 +121,6 @@ class SetDocument {
 @Data
 @AllArgsConstructor
 class Tags {
-    private String name;
-    private String color;
+    private String tagName;
+    private String tagColor;
 }
