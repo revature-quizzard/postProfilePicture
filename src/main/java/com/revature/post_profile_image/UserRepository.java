@@ -17,9 +17,16 @@ import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 
 import java.util.List;
 
+/**
+ * The UserRepository is a class dedicated to connecting to DynamoDB for the purposes of
+ * performing a Read to retrieve a user, and performing an Update with the purpose being to
+ * give them a shiny new 'profile_picture'.
+ *
+ * @author John Callahan
+ */
 public class UserRepository {
 
-    private DynamoDbTable<User> userTable;
+    private final DynamoDbTable<User> userTable;
 
     public UserRepository(DynamoDbTable<User> userTable) {
         this.userTable = userTable;
@@ -31,6 +38,13 @@ public class UserRepository {
         userTable = dbClient.table("Users", TableSchema.fromBean(User.class));
     }
 
+    /**
+     * Find the user by their ID number in Cognito. Has nothing to do with Cognito.
+     * @param id - the partition key that is used to find the user. Without this, it would be extremely difficult to
+     *           locate the specific identity within the DynamoDB table.
+     * @return - A user object bearing the data sourced from the DynamoDB table. This is so that we can send it back to the
+     * handler for proper updating of their profile picture with the URL sourced from S3.
+     */
     public User findUserById(String id) {
         AttributeValue val = AttributeValue.builder().s(id).build();
         // Make an expression where '#a' and ':b' are variables. Assign those variables to a string and value, a hashset.
@@ -45,6 +59,15 @@ public class UserRepository {
         System.out.println("User found: " + user);
         return user;
     }
+
+    /**
+     * Updates the user within the Users table in DynamoDB with a new profile_picture field. This is intended to be
+     * a url that can be called to display that user's avatar within the UI.
+     * @param user - The user whose profile picture url will be updated and saved.
+     * @return - the user object itself for verification within the handler. It is not going to be sent back
+     * to the user.
+     */
+    public User saveUser(User user) { return userTable.updateItem(user); }
 }
 
 /**
