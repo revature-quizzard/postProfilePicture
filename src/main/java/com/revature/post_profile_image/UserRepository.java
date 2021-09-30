@@ -4,6 +4,7 @@ import com.revature.post_profile_image.exceptions.ResourceNotFoundException;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
 import software.amazon.awssdk.enhanced.dynamodb.Expression;
@@ -76,6 +77,8 @@ public class UserRepository {
 @Data
 @Builder
 @DynamoDbBean
+@NoArgsConstructor
+@AllArgsConstructor
 class User {
     private String id;
     private String username;
@@ -100,6 +103,7 @@ class User {
  * and their created list of cards. This is what we are altering.
  */
 @Data
+@NoArgsConstructor
 @AllArgsConstructor
 class SetDocument {
     private String id;
@@ -119,6 +123,7 @@ class SetDocument {
  * user data safely.
  */
 @Data
+@NoArgsConstructor
 @AllArgsConstructor
 class Tags {
     private String tagName;
