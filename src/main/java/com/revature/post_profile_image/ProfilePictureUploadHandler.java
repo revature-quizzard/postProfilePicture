@@ -124,6 +124,7 @@ public class ProfilePictureUploadHandler implements RequestHandler<APIGatewayPro
             ByteArrayOutputStream output = new ByteArrayOutputStream();
 
             // parse content stream to discover the mimeType. Necessary for knowing what to take from the s3.
+            logger.log("Checking the mimeType...");
             String mimeType = URLConnection.guessContentTypeFromStream(content); //mimeType is something like "image/jpeg"
             String delimiter="[/]";
             String[] tokens = mimeType.split(delimiter);
@@ -156,10 +157,13 @@ public class ProfilePictureUploadHandler implements RequestHandler<APIGatewayPro
 
             // tag the image with the user_id as a unique name.
             PutObjectResult result = s3Client.putObject(bucketName, user_id, inStream, objMetadata);
-            URL pictureUrl = s3Client.getUrl(bucketName, user_id + "." + fileExtension);
 
             logger.log("File successfully persisted to an S3 Bucket! Hooray!");
             logger.log("Result: " + result);
+
+            logger.log("Fetching the url from the bucket...");
+            URL pictureUrl = s3Client.getUrl(bucketName, user_id + "." + fileExtension);
+            logger.log("URL found! " + pictureUrl.toString());
 
             logger.log("Preparing response object");
 
