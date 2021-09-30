@@ -30,6 +30,7 @@ class ProfilePictureUploadHandlerTest {
     ProfilePictureUploadHandler sut;
     Context mockContext;
     AmazonS3 mockS3Client;
+    UserRepository mockUserRepo;
 
     @org.junit.jupiter.api.BeforeAll
     public static void beforeAll() { testLogger = new TestLogger(); }
@@ -37,10 +38,16 @@ class ProfilePictureUploadHandlerTest {
     @org.junit.jupiter.api.BeforeEach
     void setUp() throws MalformedURLException {
         mockS3Client = mock(AmazonS3.class);
-        sut = new ProfilePictureUploadHandler(mockS3Client);
+        mockUserRepo = mock(UserRepository.class);
+        sut = new ProfilePictureUploadHandler(mockS3Client, mockUserRepo);
 
         mockContext = mock(Context.class);
         when(mockContext.getLogger()).thenReturn(testLogger);
+
+        User user = User.builder()
+                .id("valid")
+                .username("valid")
+                .build();
 
         URLStreamHandler testStreamHandler = new URLStreamHandler() {
             @Override
@@ -52,6 +59,8 @@ class ProfilePictureUploadHandlerTest {
         PutObjectResult testResult = new PutObjectResult();
         when(mockS3Client.putObject(anyString(), anyString(), any(InputStream.class), any())).thenReturn(testResult);
         when(mockS3Client.getUrl(anyString(), anyString())).thenReturn(testUrl);
+        when(mockUserRepo.findUserById(anyString())).thenReturn(user);
+        when(mockUserRepo.saveUser(any(User.class))).thenReturn(user);
     }
 
     @org.junit.jupiter.api.AfterEach
