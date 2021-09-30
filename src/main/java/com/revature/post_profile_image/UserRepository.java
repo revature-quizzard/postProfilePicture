@@ -66,4 +66,3 @@ public class UserRepository {
     @SneakyThrows
     public User saveUser(User user) { return userTable.updateItem(user); }
 }
-
