@@ -15,9 +15,3 @@ Resources:
       Policies:
         - arn:aws:iam::011217676466:policy/QwizzardUserProfileImageBucketPutAccess
         - arn:aws:iam::011217676466:policy/service-role/AWSLambdaBasicExecutionRole-0122a76b-db79-440d-a45b-862bd20cd7e0
-      Events:
-        Api:
-          Type: Api
-          Properties:
-            Path: /users/image
-            Method: post
