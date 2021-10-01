@@ -24,6 +24,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.Base64;
 import java.util.Map;
+import java.util.*;
 
 /**
  * ProfilePictureUploadHandler is the handler for an AWS Lambda that takes in a base64 encoded string derived from an image
@@ -32,18 +33,22 @@ import java.util.Map;
  * @author John Callahan
  * @author Mitchell Panenko
  */
+
 public class ProfilePictureUploadHandler implements RequestHandler<APIGatewayProxyRequestEvent, APIGatewayProxyResponseEvent> {
 
     private static final Gson mapper = new GsonBuilder().setPrettyPrinting().create();
     private AmazonS3 s3Client = AmazonS3ClientBuilder.standard().withRegion("us-east-2").build();
-    private UserRepository userRepo;
+    private final UserRepository userRepository;
 
-    public ProfilePictureUploadHandler(AmazonS3 s3Client, UserRepository userRepo) {
-        this.s3Client = s3Client;
-        this.userRepo = userRepo;
+    public ProfilePictureUploadHandler() {
+        userRepository = new UserRepository();
     }
 
-    public ProfilePictureUploadHandler() {}
+    public ProfilePictureUploadHandler(AmazonS3 s3Client, UserRepository userRepository) {
+        this.s3Client = s3Client;
+        this.userRepository = userRepository;
+    }
+
 
     /**
      *
@@ -65,6 +70,10 @@ public class ProfilePictureUploadHandler implements RequestHandler<APIGatewayPro
         logger.log("Request received at " + LocalDateTime.now());
 
         APIGatewayProxyResponseEvent responseEvent = new APIGatewayProxyResponseEvent();
+        Map<String, String> headers = new HashMap<>();
+        headers.put("Access-Control-Allow-Headers", "Content-Type,X-Amz-Date,Authorization");
+        headers.put("Access-Control-Allow-Origin", "*");
+        responseEvent.setHeaders(headers);
         try {
             Map<String, String> queryParams = requestEvent.getQueryStringParameters();
             String user_id;
@@ -128,12 +137,6 @@ public class ProfilePictureUploadHandler implements RequestHandler<APIGatewayPro
             ByteArrayInputStream content = new ByteArrayInputStream(decodedFileByteBinary);
             ByteArrayOutputStream output = new ByteArrayOutputStream();
 
-            //Get the file extension from the content type
-            String delimiter = "/";
-            String[] tokens = contentType.split(delimiter);
-            String fileExtension = tokens[1];
-            logger.log("mimeType discovered! " + fileExtension);
-
             // create three different streams for the content, boundary, and the decoded data. Skip past the unnecessary preamble.
             MultipartStream multipartStream = new MultipartStream(content, boundary, decodedFileByteBinary.length, null);
 
@@ -163,7 +166,7 @@ public class ProfilePictureUploadHandler implements RequestHandler<APIGatewayPro
             logger.log("Result: " + result + "\n");
 
             logger.log("Fetching the url from the bucket...\n");
-            URL pictureUrl = s3Client.getUrl(bucketName, user_id + "." + fileExtension);
+            URL pictureUrl = s3Client.getUrl(bucketName, user_id);
             logger.log("URL found! " + pictureUrl.toString() + "\n");
 
             logger.log("Preparing response object\n");
@@ -174,14 +177,14 @@ public class ProfilePictureUploadHandler implements RequestHandler<APIGatewayPro
 
             // find the user so we may alter them
             logger.log("Fetching user...");
-            User user = userRepo.findUserById(user_id);
+            User user = userRepository.findUserById(user_id, logger);
             logger.log("User found: " + user + "\n");
 
             // perform the alteration. pictureUrl can never be null, and if one is not found,
             // it results in a NullPointerException. this is perfectly safe.
             logger.log("Performing update of profile_picture...");
             user.setProfilePicture(pictureUrl.toString());
-            userRepo.saveUser(user);
+            userRepository.saveUser(user);
             logger.log("Update complete!\n");
 
         } catch (IOException ioe) {
@@ -190,7 +193,7 @@ public class ProfilePictureUploadHandler implements RequestHandler<APIGatewayPro
             responseEvent.setBody(mapper.toJson("Your image could not be persisted!"));
         } catch (NullPointerException npe) {
             logger.log("Error: Could not find " + npe.getCause() + "!");
-            responseEvent.setStatusCode(504);
+            responseEvent.setStatusCode(404);
             responseEvent.setBody(mapper.toJson(npe));
         } catch (Exception e) {
             responseEvent.setStatusCode(500);

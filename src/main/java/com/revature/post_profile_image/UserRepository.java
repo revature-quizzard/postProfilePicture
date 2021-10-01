@@ -1,6 +1,6 @@
 package com.revature.post_profile_image;
 
-import com.revature.post_profile_image.exceptions.ResourceNotFoundException;
+import com.amazonaws.services.lambda.runtime.LambdaLogger;
 import com.revature.post_profile_image.models.User;
 import lombok.SneakyThrows;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
@@ -23,10 +23,6 @@ public class UserRepository {
 
     private final DynamoDbTable<User> userTable;
 
-    public UserRepository(DynamoDbTable<User> userTable) {
-        this.userTable = userTable;
-    }
-
     public UserRepository() {
         DynamoDbClient db = DynamoDbClient.builder().httpClient(ApacheHttpClient.create()).build();
         DynamoDbEnhancedClient dbClient = DynamoDbEnhancedClient.builder().dynamoDbClient(db).build();
@@ -41,19 +37,19 @@ public class UserRepository {
      * handler for proper updating of their profile picture with the URL sourced from S3.
      */
     @SneakyThrows
-    public User findUserById(String id) {
+    public User findUserById(String id, LambdaLogger logger) {
         AttributeValue val = AttributeValue.builder().s(id).build();
         // Make an expression where '#a' and ':b' are variables. Assign those variables to a string and value, a hashset.
         Expression filter = Expression.builder().expression("#a = :b").putExpressionName("#a", "id").putExpressionValue(":b", val).build();
         ScanEnhancedRequest request = ScanEnhancedRequest.builder().filterExpression(filter).build();
 
-        User user = userTable.scan(request).stream()
-                .findFirst()
-                .orElseThrow(ResourceNotFoundException::new)
-                .items().get(0);
-
-        System.out.println("User found: " + user);
-        return user;
+        try {
+            User user = userTable.scan(request).stream().findFirst().orElseThrow(RuntimeException::new).items().get(0);
+            return user;
+        } catch (Exception e) {
+            logger.log("Could not find user: " + id);
+            return null;
+        }
     }
 
     /**
