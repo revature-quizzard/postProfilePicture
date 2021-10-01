@@ -36,14 +36,7 @@ public class ProfilePictureUploadHandler implements RequestHandler<APIGatewayPro
 
     private static final Gson mapper = new GsonBuilder().setPrettyPrinting().create();
     private AmazonS3 s3Client = AmazonS3ClientBuilder.standard().withRegion("us-east-2").build();
-    private UserRepository userRepo;
-
-    public ProfilePictureUploadHandler(AmazonS3 s3Client, UserRepository userRepo) {
-        this.s3Client = s3Client;
-        this.userRepo = userRepo;
-    }
-
-    public ProfilePictureUploadHandler() {}
+    private UserRepository userRepo = new UserRepository();;
 
     /**
      *

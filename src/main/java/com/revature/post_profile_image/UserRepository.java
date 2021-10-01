@@ -21,8 +21,7 @@ import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
  */
 public class UserRepository {
 
-    private final DynamoDbTable<User> userTable;
-    public static final UserRepository userRepository = new UserRepository();
+    public final DynamoDbTable<User> userTable;
 
     public UserRepository() {
         DynamoDbClient db = DynamoDbClient.builder().httpClient(ApacheHttpClient.create()).build();
@@ -30,25 +29,15 @@ public class UserRepository {
         userTable = dbClient.table("Users", TableSchema.fromBean(User.class));
     }
 
-    /**
-     * Find the user by their ID number in Cognito. Has nothing to do with Cognito.
-     * @param id - the partition key that is used to find the user. Without this, it would be extremely difficult to
-     *           locate the specific identity within the DynamoDB table.
-     * @return - A user object bearing the data sourced from the DynamoDB table. This is so that we can send it back to the
-     * handler for proper updating of their profile picture with the URL sourced from S3.
-     */
     @SneakyThrows
     public User findUserById(String id) {
         AttributeValue value = AttributeValue.builder().s(id).build();
-        // Make an expression where '#a' and ':b' are variables. Assign those variables to a string and value, a hashset.
         Expression filter = Expression.builder().expression("#a = :b").putExpressionName("#a", "id").putExpressionValue(":b", value).build();
         ScanEnhancedRequest request = ScanEnhancedRequest.builder().filterExpression(filter).build();
         try {
             User user = userTable.scan(request).stream().findFirst().orElseThrow(RuntimeException::new).items().get(0);
             return user;
-        }
-        catch (Exception e)
-        {
+        } catch (Exception e) {
             return null;
         }
     }
