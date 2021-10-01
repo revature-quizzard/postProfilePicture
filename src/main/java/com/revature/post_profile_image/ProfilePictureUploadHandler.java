@@ -128,12 +128,6 @@ public class ProfilePictureUploadHandler implements RequestHandler<APIGatewayPro
             ByteArrayInputStream content = new ByteArrayInputStream(decodedFileByteBinary);
             ByteArrayOutputStream output = new ByteArrayOutputStream();
 
-            //Get the file extension from the content type
-            String delimiter = "/";
-            String[] tokens = contentType.split(delimiter);
-            String fileExtension = tokens[1];
-            logger.log("mimeType discovered! " + fileExtension);
-
             // create three different streams for the content, boundary, and the decoded data. Skip past the unnecessary preamble.
             MultipartStream multipartStream = new MultipartStream(content, boundary, decodedFileByteBinary.length, null);
 
@@ -163,7 +157,7 @@ public class ProfilePictureUploadHandler implements RequestHandler<APIGatewayPro
             logger.log("Result: " + result + "\n");
 
             logger.log("Fetching the url from the bucket...\n");
-            URL pictureUrl = s3Client.getUrl(bucketName, user_id + "." + fileExtension);
+            URL pictureUrl = s3Client.getUrl(bucketName, user_id);
             logger.log("URL found! " + pictureUrl.toString() + "\n");
 
             logger.log("Preparing response object\n");
