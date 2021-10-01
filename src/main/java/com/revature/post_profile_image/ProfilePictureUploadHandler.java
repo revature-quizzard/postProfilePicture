@@ -43,6 +43,8 @@ public class ProfilePictureUploadHandler implements RequestHandler<APIGatewayPro
         this.userRepo = userRepo;
     }
 
+    public ProfilePictureUploadHandler() {}
+
     /**
      *
      * Handler for the APIGateway Proxy Request Event. Performs decryption of the base64-encoded
