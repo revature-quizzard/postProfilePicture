@@ -184,7 +184,7 @@ public class ProfilePictureUploadHandler implements RequestHandler<APIGatewayPro
             responseEvent.setBody(mapper.toJson("Your image could not be persisted!"));
         } catch (NullPointerException npe) {
             logger.log("Error: Could not find " + npe.getCause() + "!");
-            responseEvent.setStatusCode(504);
+            responseEvent.setStatusCode(404);
             responseEvent.setBody(mapper.toJson(npe));
         } catch (Exception e) {
             responseEvent.setStatusCode(500);
