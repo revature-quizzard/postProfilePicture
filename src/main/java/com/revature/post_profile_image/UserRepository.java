@@ -42,18 +42,15 @@ public class UserRepository {
      */
     @SneakyThrows
     public User findUserById(String id) {
-        AttributeValue val = AttributeValue.builder().s(id).build();
-        // Make an expression where '#a' and ':b' are variables. Assign those variables to a string and value, a hashset.
-        Expression filter = Expression.builder().expression("#a = :b").putExpressionName("#a", "id").putExpressionValue(":b", val).build();
+        AttributeValue value = AttributeValue.builder().s(id).build();
+        Expression filter = Expression.builder().expression("#a = :b").putExpressionName("#a", "id").putExpressionValue(":b", value).build();
         ScanEnhancedRequest request = ScanEnhancedRequest.builder().filterExpression(filter).build();
-
-        User user = userTable.scan(request).stream()
-                .findFirst()
-                .orElseThrow(ResourceNotFoundException::new)
-                .items().get(0);
-
-        System.out.println("User found: " + user);
-        return user;
+        try {
+            User user = userTable.scan(request).stream().findFirst().orElseThrow(RuntimeException::new).items().get(0);
+            return user;
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     /**
