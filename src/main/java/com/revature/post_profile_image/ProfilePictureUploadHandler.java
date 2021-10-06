@@ -118,6 +118,7 @@ public class ProfilePictureUploadHandler implements RequestHandler<APIGatewayPro
             // take the headers from the APIGatewayProxyRequestEvent
             logger.log("Retrieving content-type header value and extracting the boundary\n");
             Map<String, String> reqHeaders = requestEvent.getHeaders();
+            logger.log("Headers: " + reqHeaders);
 
             // without a proper content-type header, it cannot be read.
             if (reqHeaders == null || !reqHeaders.containsKey("Content-Type")) {
