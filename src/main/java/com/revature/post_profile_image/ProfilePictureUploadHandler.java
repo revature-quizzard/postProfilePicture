@@ -131,12 +131,7 @@ public class ProfilePictureUploadHandler implements RequestHandler<APIGatewayPro
 
             // take charsets from the decoded byte array and turn them into image data.
             String contentType = reqHeaders.get("content-type");
-
-            logger.log("Content Type: " + contentType );
-
-            byte[] boundary = reqHeaders.get("boundary").getBytes(StandardCharsets.UTF_8);
-
-            logger.log("Boundary: " + boundary );
+            byte[] boundary = contentType.split("=")[1].getBytes(StandardCharsets.UTF_8);
 
             logger.log("Content-type and boundary extracted from request.");
             logger.log("Decoded file byte array: " + new String(decodedFileByteBinary, StandardCharsets.UTF_8) + "\n");
