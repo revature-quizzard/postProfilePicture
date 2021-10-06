@@ -120,8 +120,9 @@ public class ProfilePictureUploadHandler implements RequestHandler<APIGatewayPro
             Map<String, String> reqHeaders = requestEvent.getHeaders();
             logger.log("Headers: " + reqHeaders);
 
+
             // without a proper content-type header, it cannot be read.
-            if (reqHeaders == null || !reqHeaders.containsKey("Content-Type")) {
+            if (reqHeaders == null || !reqHeaders.containsKey("content-type")) {
                 logger.log("Could not process request; Missing Content-Type header.");
                 responseEvent.setStatusCode(400);
                 requestEvent.setBody(mapper.toJson("Could not process request; Missing Content-Type header."));
@@ -129,8 +130,8 @@ public class ProfilePictureUploadHandler implements RequestHandler<APIGatewayPro
             }
 
             // take charsets from the decoded byte array and turn them into image data.
-            String contentType = reqHeaders.get("Content-Type");
-            byte[] boundary = contentType.split("=")[1].getBytes(StandardCharsets.UTF_8);
+            String contentType = reqHeaders.get("content-type");
+            byte[] boundary = reqHeaders.get("boundary").getBytes(StandardCharsets.UTF_8);
 
             logger.log("Content-type and boundary extracted from request.");
             logger.log("Decoded file byte array: " + new String(decodedFileByteBinary, StandardCharsets.UTF_8) + "\n");
