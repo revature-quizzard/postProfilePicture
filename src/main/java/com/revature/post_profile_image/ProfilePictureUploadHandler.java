@@ -68,6 +68,8 @@ public class ProfilePictureUploadHandler implements RequestHandler<APIGatewayPro
 
         LambdaLogger logger = context.getLogger();
         logger.log("Request received at " + LocalDateTime.now());
+        logger.log("Request: " + requestEvent);
+        logger.log("Context: " + context);
 
         APIGatewayProxyResponseEvent responseEvent = new APIGatewayProxyResponseEvent();
         Map<String, String> headers = new HashMap<>();
