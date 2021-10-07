@@ -2,3 +2,7 @@
 /shelf/
 /.idea/
 /target/
+/.aws-sam/
+
+# Log files
+*.log

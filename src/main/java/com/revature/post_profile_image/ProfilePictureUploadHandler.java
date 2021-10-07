@@ -11,92 +11,137 @@ import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectResult;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.revature.post_profile_image.models.User;
 import org.apache.commons.fileupload.MultipartStream;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URL;
+import java.net.URLConnection;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.Base64;
-import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 /**
- * ProfilePictureUploadHandler is a Java-based AWS Lambda program whose sole job
- * is to take an image and shepherd it into a database for a grateful user. It is an
- * abstraction for a massive amount of heavy lifting in terms of conversion between
- * image and text. And it is beautiful.
+ * ProfilePictureUploadHandler is the handler for an AWS Lambda that takes in a base64 encoded string derived from an image
+ * and decrypts it, compiling it into an image and persisting that image into an Amazon S3 bucket for safe and easy querying.
  *
  * @author John Callahan
+ * @author Mitchell Panenko
  */
+
 public class ProfilePictureUploadHandler implements RequestHandler<APIGatewayProxyRequestEvent, APIGatewayProxyResponseEvent> {
 
     private static final Gson mapper = new GsonBuilder().setPrettyPrinting().create();
-    private final AmazonS3 s3Client = AmazonS3ClientBuilder.standard().withRegion("us-east-2").build();
+    private AmazonS3 s3Client = AmazonS3ClientBuilder.standard().withRegion("us-east-2").build();
+    private final UserRepository userRepository;
+
+    public ProfilePictureUploadHandler() {
+        userRepository = new UserRepository();
+    }
+
+    public ProfilePictureUploadHandler(AmazonS3 s3Client, UserRepository userRepository) {
+        this.s3Client = s3Client;
+        this.userRepository = userRepository;
+    }
+
 
     /**
      *
-     * Handler for the APIGateway Proxy Request Event. Common among all lambdas.
-     * Encrypts an image in base 64 for easy sending to an s3 bucket.
+     * Handler for the APIGateway Proxy Request Event. Performs decryption of the base64-encoded
+     * image and persists it into a public S3 bucket.
      *
-     * @param requestEvent: The requesting event obtained from APIGateway,
-     * likely bearing an image ripe for turning into a byte array.
-     * @param context: The context surrounding
-     * @return responseEvent: An HTTP reply bearing a message of either success or failure.
-     * If all goes well, it returns a success message that the image was indeed persisted in
-     * Amazon S3.
+     * @param requestEvent: The input from APIGateway sent from the user. Bears an image,
+     *                    Which was turned into base64 when it was sent as part of an HTTP Request.
+     * @param context: APIGateway's logger and metadata for tracking incoming and outgoing
+     *               requests and responses.
+     * @return An HTTP reply bearing a message of either success or failure.
      */
     @Override
     public APIGatewayProxyResponseEvent handleRequest(APIGatewayProxyRequestEvent requestEvent, Context context) {
+        // bucketName defines which bucket the lambda outputs to. inStream separates the content from the multipart stream.
+        final String bucketName = "user-profile-images-bucket";
 
         LambdaLogger logger = context.getLogger();
         logger.log("Request received at " + LocalDateTime.now());
+        logger.log("Request: " + requestEvent);
+        logger.log("Context: " + context);
 
         APIGatewayProxyResponseEvent responseEvent = new APIGatewayProxyResponseEvent();
+        Map<String, String> headers = new HashMap<>();
+        headers.put("Access-Control-Allow-Headers", "Content-Type,X-Amz-Date,Authorization");
+        headers.put("Access-Control-Allow-Origin", "*");
+        responseEvent.setHeaders(headers);
         try {
+            Map<String, String> queryParams = requestEvent.getQueryStringParameters();
+            String user_id;
+
+            // header validation. There must be a user_id parameter
+            if (queryParams != null) {
+                user_id = queryParams.get("user_id");
+                logger.log("User verified! user_id: " + user_id);
+            } else {
+                user_id = "";
+            }
+
+            // if no user parameter, return 400.
+            if (user_id.trim().equals("") || user_id.isEmpty()) {
+                logger.log("Invalid request; there must be a user_id!");
+                responseEvent.setStatusCode(400);
+                requestEvent.setBody(mapper.toJson("Invalid request; there must be a user_id!"));
+                return responseEvent;
+            }
+
             byte[] fileByteArray = requestEvent.getBody().getBytes();
 
-            logger.log("Incoming request body size: " + fileByteArray.length);
+            logger.log("Incoming request body size: " + fileByteArray.length + "\n");
 
-            // Base64 Validation
+            // validate that the request body is base64, return 400 if not
             boolean isBase64Encoded = requestEvent.getIsBase64Encoded();
-            logger.log("Request is base64 encoded: " + isBase64Encoded);
+            logger.log("Request is base64 encoded: " + isBase64Encoded + "\n");
 
             if (!isBase64Encoded) {
                 logger.log("Invalid request, this is supposed to be a base64 encoded string!");
                 responseEvent.setStatusCode(400);
+                requestEvent.setBody(mapper.toJson("Invalid request, this is supposed to be a base64 encoded string!"));
                 return responseEvent;
             }
 
-            // Decoding the string...
-            logger.log("Decoding file byte array...");
+            // Decoding the array from base64 to native script.
+            logger.log("Decoding file byte array...\n");
             byte[] decodedFileByteBinary = Base64.getDecoder().decode(fileByteArray);
 
-            // Own the headers
-            logger.log("Retrieving content-type header value and extracting the boundary");
+            // take the headers from the APIGatewayProxyRequestEvent
+            logger.log("Retrieving content-type header value and extracting the boundary\n");
             Map<String, String> reqHeaders = requestEvent.getHeaders();
+            logger.log("Headers: " + reqHeaders);
 
-            if (reqHeaders==null || !reqHeaders.containsKey("Content-Type")) {
+
+            // without a proper content-type header, it cannot be read.
+            if (reqHeaders == null || !reqHeaders.containsKey("content-type")) {
                 logger.log("Could not process request; Missing Content-Type header.");
                 responseEvent.setStatusCode(400);
+                requestEvent.setBody(mapper.toJson("Could not process request; Missing Content-Type header."));
                 return responseEvent;
             }
 
-            // Split the string into charsets
-            String contentType = reqHeaders.get("Content-Type");
+            // take charsets from the decoded byte array and turn them into image data.
+            String contentType = reqHeaders.get("content-type");
             byte[] boundary = contentType.split("=")[1].getBytes(StandardCharsets.UTF_8);
 
             logger.log("Content-type and boundary extracted from request.");
             logger.log("Decoded file byte array: " + new String(decodedFileByteBinary, StandardCharsets.UTF_8) + "\n");
 
-            // Write the file to a byte stream for processing.
-            logger.log("Writing file data to byte stream");
+            // create another bytestream from the imagedata to get a finished image.
+            logger.log("Writing file data to byte stream\n");
             ByteArrayInputStream content = new ByteArrayInputStream(decodedFileByteBinary);
             ByteArrayOutputStream output = new ByteArrayOutputStream();
 
-            // Stream over the data and write it to a decrypted byte stream.
+            // create three different streams for the content, boundary, and the decoded data. Skip past the unnecessary preamble.
             MultipartStream multipartStream = new MultipartStream(content, boundary, decodedFileByteBinary.length, null);
 
             boolean hasNext = multipartStream.skipPreamble();
@@ -108,41 +153,55 @@ public class ProfilePictureUploadHandler implements RequestHandler<APIGatewayPro
                 hasNext = multipartStream.readBoundary();
             }
 
-            logger.log("File data written to byte stream!");
+            logger.log("File data written to byte stream!\n");
 
-            // Bucketname variable pointing to the user-profile-images-bucket.
-            String bucketName = "user-profile-images-bucket";
-            logger.log("Preparing file for persistence to s3 bucket " + bucketName + "...");
+            logger.log("Preparing file for persistence to s3 bucket " + bucketName + "...\n");
             InputStream inStream = new ByteArrayInputStream(output.toByteArray());
 
-            // Generate object metadata.
+            // objMetadata defines certain aspects of the output image, like the size and type.
             ObjectMetadata objMetadata = new ObjectMetadata();
             objMetadata.setContentLength(output.toByteArray().length);
             objMetadata.setContentType(contentType);
 
-            // Generate a random UUID to tag the image object with, to prevent any possible query problems.
-            String uniqueFileName = UUID.randomUUID().toString();
-            PutObjectResult result = s3Client.putObject(bucketName, uniqueFileName, inStream, objMetadata);
+            // tag the image with the user_id as a unique name.
+            PutObjectResult result = s3Client.putObject(bucketName, user_id, inStream, objMetadata);
 
-            logger.log("File successfully persisted to an S3 Bucket! Hooray!");
-            logger.log("Result: " + result);
+            logger.log("File successfully persisted to an S3 Bucket! Hooray!\n");
+            logger.log("Result: " + result + "\n");
 
-            logger.log("Preparing response object");
+            logger.log("Fetching the url from the bucket...\n");
+            URL pictureUrl = s3Client.getUrl(bucketName, user_id);
+            logger.log("URL found! " + pictureUrl.toString() + "\n");
+
+            logger.log("Preparing response object\n");
+
+            // 201: resource successfully created. send back the picture URL.
             responseEvent.setStatusCode(201);
+            responseEvent.setBody(pictureUrl.toString());
 
-            // Generate the body of the response. It will be a JSON of the key value pairs from respbody
-            Map<String, String> respBody = new HashMap<>();
-            respBody.put("status", "uploaded");
-            respBody.put("uuid", uniqueFileName);
-            responseEvent.setBody(mapper.toJson(respBody));
+            // find the user so we may alter them
+            logger.log("Fetching user...");
+            User user = userRepository.findUserById(user_id, logger);
+            logger.log("User found: " + user + "\n");
 
-        } catch(IOException ioe) {
+            // perform the alteration. pictureUrl can never be null, and if one is not found,
+            // it results in a NullPointerException. this is perfectly safe.
+            logger.log("Performing update of profile_picture...");
+            user.setProfilePicture(pictureUrl.toString());
+            userRepository.saveUser(user);
+            logger.log("Update complete!\n");
+
+        } catch (IOException ioe) {
             logger.log("Error reading byte array!" + ioe.getMessage());
             responseEvent.setStatusCode(500);
-            return responseEvent;
+            responseEvent.setBody(mapper.toJson("Your image could not be persisted!"));
+        } catch (NullPointerException npe) {
+            logger.log("Error: Could not find " + npe.getCause() + "!");
+            responseEvent.setStatusCode(404);
+            responseEvent.setBody(mapper.toJson(npe));
         } catch (Exception e) {
             responseEvent.setStatusCode(500);
-            logger.log("An unexpected exception occurred! " + e.getMessage());
+            logger.log("An unexpected exception occurred: " + e.getMessage());
         }
 
         logger.log("Request processing complete. Sending response:: " + responseEvent);
